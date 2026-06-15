@@ -23,7 +23,10 @@ spec:
       runtimeClassName: kata-cc
       containers:
         - name: cc-playground
-          image: image-registry.openshift-image-registry.svc:5000/cc-playground/cc-playground:latest
+          # Built and pushed by GitHub Actions (.github/workflows/build.yml).
+          # For an in-cluster build instead, run ./build.sh and set this to
+          # image-registry.openshift-image-registry.svc:5000/cc-playground/cc-playground:latest
+          image: quay.io/makentenza/cc-playground:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

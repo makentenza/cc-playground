@@ -1,5 +1,7 @@
 # cc-playground
 
+[![build-and-push](https://github.com/makentenza/cc-playground/actions/workflows/build.yml/badge.svg)](https://github.com/makentenza/cc-playground/actions/workflows/build.yml)
+
 A tiny **confidential-computing self-introspection dashboard**. It runs *inside*
 a confidential container (OpenShift sandboxed containers / CoCo, `kata-cc`
 runtime) and serves — via **nginx** — a page that shows what the workload can
@@ -56,17 +58,30 @@ and written to `/tmp/cc-info.json` (TEE is detected from the `tdx_guest` CPU fla
   values* + *Share*). Its PCR8 must be in the reference values or attestation will
   be denied.
 
-## Build & deploy
+## CI/CD
+
+On every push to `main`, [GitHub Actions](.github/workflows/build.yml) builds the
+image and pushes it to **`quay.io/makentenza/cc-playground`** (`:latest` plus a
+commit-sha tag). One-time setup:
+
+1. Add two repository secrets (Settings → Secrets and variables → Actions, or
+   `gh secret set`):
+   - `QUAY_USERNAME` — your Quay account or robot name (e.g. `makentenza+ci`).
+   - `QUAY_PASSWORD` — the matching password / robot token.
+2. Make the Quay repository **public** so the cluster can pull it without a
+   secret (or add a pull secret to the namespace).
+3. To publish elsewhere, set a repo variable `QUAY_IMAGE` — no code change needed.
+
+## Deploy
 
 Run against the cluster with your TEE node:
 
 ```bash
-./build.sh     # in-cluster binary build → internal registry (no Git remote needed)
 ./deploy.sh    # Deployment + Service + Route in the cc-playground namespace
 ```
 
-Then paste the initdata and open the route (both commands are printed by
-`deploy.sh`):
+This pulls `quay.io/makentenza/cc-playground:latest`. Then paste the initdata and
+open the route (both commands are printed by `deploy.sh`):
 
 ```bash
 oc -n cc-playground patch deploy/cc-playground --type=json \
@@ -74,6 +89,10 @@ oc -n cc-playground patch deploy/cc-playground --type=json \
 
 oc get route cc-playground -n cc-playground -o jsonpath='{.spec.host}'
 ```
+
+**Build in-cluster instead** (no Quay): `./build.sh` runs an OpenShift binary
+build into the internal registry — then point the Deployment image at
+`image-registry.openshift-image-registry.svc:5000/cc-playground/cc-playground:latest`.
 
 ## Configure
 
