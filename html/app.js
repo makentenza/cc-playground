@@ -165,16 +165,62 @@ async function loadReport() {
     'No attestation-token endpoint is exposed by this CDH build. The raw EAR token is held by the in-guest attestation agent; in this demo the successful secret release (above) is the verifiable proof that attestation passed.';
 }
 
+// Sample values used only when no in-guest backend is reachable (static preview
+// or local dev) — clearly flagged with the demo banner so it's never mistaken
+// for a live workload.
+const DEMO_INFO = {
+  pod: 'cc-playground-7d9f8c6b5-x2k4p',
+  namespace: 'cc-playground',
+  uid: 'dd77f9bd-5065-4dde-a2e1-f2366f57f574',
+  podIP: '10.130.2.55',
+  serviceAccount: 'default',
+  image: 'cc-playground',
+  runtimeClass: 'kata-cc',
+  node: 'mentenza-kata-cc-cc-tdx-metal-b-dlfjr',
+  tee: 'Intel TDX',
+  cpu: 'Intel(R) Xeon(R) Platinum 8592+ (TDX)',
+  cores: '8',
+  memoryGiB: '15.3',
+  kernel: '5.14.0-427.el9.x86_64',
+  resourcePath: 'default/kbsres1/key1',
+  kbsUrl: 'https://kbs-route-trustee-operator-system.apps.example.gcp.devcluster.openshift.com',
+  generatedAt: '(demo)',
+};
+
+const DEMO_CLAIMS = {
+  eat_profile: 'tag:github.com,2024:veraison/ear',
+  'ear.verifier-id': { developer: 'https://confidentialcontainers.org', build: 'trustee' },
+  'submods.cpu.ear.status': 'affirming',
+  'submods.cpu.ear.trustworthiness-vector': { 'instance-identity': 2, executables: 2, hardware: 2 },
+  'submods.cpu.ear.veraison.annotated-evidence': {
+    tee: 'tdx',
+    'tdx.mrtd': 'b9b6e1…3f7a (firmware measurement)',
+    'tdx.rtmr3': '4c5f0140…2952c12e (initdata, PCR8)',
+  },
+};
+
+function enterDemoMode() {
+  $('#demo-banner').classList.remove('hidden');
+  renderInfo(DEMO_INFO);
+  applyState('attested', { secret: 'super-secret-value-for-key1', path: DEMO_INFO.resourcePath });
+  $('#report-note').classList.add('hidden');
+  $('#report-claims').classList.remove('hidden');
+  $('#report-json').textContent = JSON.stringify(DEMO_CLAIMS, null, 2);
+}
+
 async function refresh() {
   setPill('pending', 'Checking attestation…');
+  $('#demo-banner').classList.add('hidden');
+  let info;
   try {
-    const info = await loadInfo();
-    renderInfo(info);
-    await probeAttestation(info);
-  } catch (e) {
-    setPill('bad', 'Could not read workload info');
-    $('#attest-explain').textContent = String(e);
+    info = await loadInfo();
+  } catch (_) {
+    // No /info.json — we're not inside the guest (static preview / local dev).
+    enterDemoMode();
+    return;
   }
+  renderInfo(info);
+  await probeAttestation(info);
   loadReport();
 }
 

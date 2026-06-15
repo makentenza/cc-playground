@@ -75,6 +75,19 @@ body {
 .pill--bad .pill__dot { background: var(--bad); }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
 
+/* ---- demo banner ---- */
+.banner {
+  max-width: 1100px;
+  margin: 16px auto -4px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(255, 204, 102, 0.1);
+  border: 1px solid rgba(255, 204, 102, 0.35);
+  color: var(--warn);
+  font-size: 13px;
+}
+.banner span { font-weight: 700; }
+
 /* ---- grid ---- */
 .grid {
   max-width: 1100px;
