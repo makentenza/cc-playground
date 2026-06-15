@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cc-playground
+  namespace: cc-playground
+  labels: { app: cc-playground }
+spec:
+  selector: { app: cc-playground }
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

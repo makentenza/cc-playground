@@ -1,0 +1,15 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: cc-playground
+  namespace: cc-playground
+  labels: { app: cc-playground }
+spec:
+  to:
+    kind: Service
+    name: cc-playground
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

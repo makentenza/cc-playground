@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confidential Computing Playground</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔒</text></svg>"
+    />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__inner">
+        <div class="hero__title">
+          <span class="hero__lock" aria-hidden="true">🔒</span>
+          <div>
+            <h1>Confidential Computing Playground</h1>
+            <p class="hero__sub">
+              This page is served from <strong>inside</strong> a confidential container. Everything
+              below is what the workload can prove about its own protected execution.
+            </p>
+          </div>
+        </div>
+        <div id="status-pill" class="pill pill--pending" title="Attestation status">
+          <span class="pill__dot"></span>
+          <span id="status-text">Checking attestation…</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- Workload -->
+      <section class="card">
+        <h2 class="card__title"><span class="card__icon">📦</span> Workload</h2>
+        <dl class="kv" id="workload">
+          <dt>Pod</dt><dd data-k="pod">—</dd>
+          <dt>Namespace</dt><dd data-k="namespace">—</dd>
+          <dt>UID</dt><dd data-k="uid" class="mono">—</dd>
+          <dt>Pod IP</dt><dd data-k="podIP" class="mono">—</dd>
+          <dt>Service account</dt><dd data-k="serviceAccount">—</dd>
+          <dt>Image</dt><dd data-k="image" class="mono wrap">—</dd>
+          <dt>Runtime class</dt><dd data-k="runtimeClass"><span class="tag" data-k="runtimeClass">—</span></dd>
+        </dl>
+      </section>
+
+      <!-- Node & TEE -->
+      <section class="card">
+        <h2 class="card__title"><span class="card__icon">🖥️</span> Node &amp; hardware TEE</h2>
+        <div id="tee-badge" class="tee tee--unknown">
+          <span class="tee__name" data-k="tee">—</span>
+          <span class="tee__hint">Trusted Execution Environment</span>
+        </div>
+        <dl class="kv">
+          <dt>Node</dt><dd data-k="node" class="mono wrap">—</dd>
+          <dt>CPU</dt><dd data-k="cpu" class="wrap">—</dd>
+          <dt>vCPUs</dt><dd data-k="cores">—</dd>
+          <dt>Guest memory</dt><dd><span data-k="memoryGiB">—</span> GiB <span class="tag tag--ok">encrypted</span></dd>
+          <dt>Guest kernel</dt><dd data-k="kernel" class="mono">—</dd>
+        </dl>
+      </section>
+
+      <!-- Attestation -->
+      <section class="card card--wide">
+        <h2 class="card__title"><span class="card__icon">🛡️</span> How this workload is attested</h2>
+        <ol class="flow" id="flow">
+          <li class="flow__step" data-step="evidence">
+            <span class="flow__n">1</span>
+            <div><strong>TEE evidence</strong><small>The CPU signs a measurement of this guest (firmware, kernel, initdata).</small></div>
+          </li>
+          <li class="flow__arrow">→</li>
+          <li class="flow__step" data-step="kbs">
+            <span class="flow__n">2</span>
+            <div><strong>Sent to Trustee / KBS</strong><small>The in-guest Confidential Data Hub forwards the evidence to the Key Broker Service.</small></div>
+          </li>
+          <li class="flow__arrow">→</li>
+          <li class="flow__step" data-step="verify">
+            <span class="flow__n">3</span>
+            <div><strong>Verified vs. reference values</strong><small>Trustee checks the measurement and issues an attestation token (EAR).</small></div>
+          </li>
+          <li class="flow__arrow">→</li>
+          <li class="flow__step" data-step="release">
+            <span class="flow__n">4</span>
+            <div><strong>Secrets released</strong><small>Only a trusted guest gets its sealed secrets back.</small></div>
+          </li>
+        </ol>
+        <p class="muted" id="attest-explain">Probing the in-guest Confidential Data Hub…</p>
+      </section>
+
+      <!-- Secret from KBS -->
+      <section class="card">
+        <h2 class="card__title"><span class="card__icon">🔑</span> Secret released by attestation</h2>
+        <dl class="kv">
+          <dt>KBS resource</dt><dd data-k="resourcePath" class="mono">—</dd>
+          <dt>Fetch result</dt><dd id="secret-status"><span class="tag">probing…</span></dd>
+        </dl>
+        <div id="secret-value-wrap" class="secret hidden">
+          <div class="secret__label">Released value <small>(only a verified TEE can read this)</small></div>
+          <pre id="secret-value" class="secret__val">—</pre>
+        </div>
+        <p class="muted small" id="secret-note"></p>
+      </section>
+
+      <!-- Attestation service -->
+      <section class="card">
+        <h2 class="card__title"><span class="card__icon">🏛️</span> Attestation service</h2>
+        <dl class="kv">
+          <dt>Type</dt><dd>Red Hat build of Trustee <span class="tag">KBS + Attestation Service</span></dd>
+          <dt>Endpoint</dt><dd data-k="kbsUrl" class="mono wrap">—</dd>
+          <dt>Reachability</dt><dd id="kbs-reach"><span class="tag">—</span></dd>
+        </dl>
+        <p class="muted small">
+          The KBS brokers secrets; the Attestation Service verifies TEE evidence against reference
+          values and signs the token. A co-located KBS uses the in-cluster service; a remote
+          (hub-and-spoke) KBS is reached over its Route.
+        </p>
+      </section>
+
+      <!-- Attestation report -->
+      <section class="card card--wide">
+        <h2 class="card__title"><span class="card__icon">📜</span> Attestation report</h2>
+        <div id="report">
+          <p class="muted" id="report-note">Looking for an attestation token…</p>
+          <div id="report-claims" class="hidden">
+            <div class="report__head">Decoded EAR token claims</div>
+            <pre id="report-json" class="secret__val"></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span id="foot-generated">—</span>
+      <span class="foot__sep">·</span>
+      <span>cc-playground — served from within the TEE guest</span>
+      <span class="foot__sep">·</span>
+      <button id="refresh" class="linkbtn" type="button">refresh</button>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
