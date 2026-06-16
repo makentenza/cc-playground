@@ -57,8 +57,13 @@ spec:
             - name: CDH_RESOURCE_PATH
               value: default/kbsres1/key1
           resources:
-            requests: { cpu: 50m, memory: 64Mi }
-            limits: { cpu: 250m, memory: 256Mi }
+            # IMPORTANT: a confidential (Intel TDX / AMD SEV-SNP) guest can't
+            # hotplug memory, so kata sizes the WHOLE guest VM from this memory
+            # limit. Too small (e.g. 256Mi) starves the guest kernel + kata-agent
+            # and the VM never boots ("Cannot start VM ... timed out connecting to
+            # vsock"). Give the guest real room — 1Gi+.
+            requests: { cpu: 100m, memory: 512Mi }
+            limits: { cpu: 500m, memory: 1Gi }
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
