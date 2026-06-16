@@ -61,10 +61,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['io.katacontainers.config.hypervisor.cc_init_data']
-            # The KBS resource the page fetches as proof of attestation.
+            # The headline KBS resource (drives the attestation verdict).
             # Always <repository>/<name>/<key> (three segments).
             - name: CDH_RESOURCE_PATH
               value: default/kbsres1/key1
+            # Every KBS resource to fetch + list (comma-separated). The guest can't
+            # enumerate KBS resources, so list the ones you want shown here — each
+            # is released only because this workload is hardware-attested.
+            - name: CDH_RESOURCE_PATHS
+              value: default/kbsres1/key1,default/makpassword/mak
           resources:
             # IMPORTANT: a confidential (Intel TDX / AMD SEV-SNP) guest can't
             # hotplug memory, so kata sizes the WHOLE guest VM from this memory

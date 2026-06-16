@@ -107,6 +107,17 @@
         <p class="muted small" id="secret-note"></p>
       </section>
 
+      <!-- All secrets released to this workload -->
+      <section class="card">
+        <h2 class="card__title"><span class="card__icon">🗝️</span> Secrets released to this workload</h2>
+        <p class="muted small">
+          Every KBS resource this attested guest pulled from Trustee. A non-confidential pod
+          requesting the same paths is refused (401) — release is gated on the hardware-attested
+          TEE evidence.
+        </p>
+        <div id="secrets-list"><span class="muted">probing…</span></div>
+      </section>
+
       <!-- Attestation service -->
       <section class="card">
         <h2 class="card__title"><span class="card__icon">🏛️</span> Attestation service</h2>

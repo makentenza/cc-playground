@@ -193,6 +193,51 @@ async function probeAttestation(info) {
   }
 }
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
+}
+
+// Fetch every configured KBS resource (info.resourcePaths, comma-separated) and
+// list each one with its released value or status — the full set of secrets the
+// attested workload pulled from Trustee.
+async function renderAllSecrets(info) {
+  const el = $('#secrets-list');
+  if (!el) return;
+  const paths = String(info.resourcePaths || info.resourcePath || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!paths.length) {
+    el.innerHTML = '<span class="muted">No resources configured.</span>';
+    return;
+  }
+  el.innerHTML = '';
+  for (const path of paths) {
+    let status, val = '';
+    try {
+      const res = await fetch('/cdh/resource/' + path, { cache: 'no-store' });
+      if (res.ok) {
+        status = '<span class="tag tag--ok">released</span>';
+        val = `<pre class="secret__val">${escapeHtml(await res.text())}</pre>`;
+      } else if (res.status === 404) {
+        status = '<span class="tag tag--warn">404 · no such resource</span>';
+      } else if (res.status === 401 || res.status === 403) {
+        status = `<span class="tag tag--bad">${res.status} · denied</span>`;
+      } else {
+        status = `<span class="tag">${res.status}</span>`;
+      }
+    } catch (_) {
+      status = '<span class="tag tag--bad">unreachable</span>';
+    }
+    const row = document.createElement('div');
+    row.className = 'secret-item';
+    row.innerHTML = `<div class="secret-item__head"><code class="mono">${escapeHtml(path)}</code> ${status}</div>${val}`;
+    el.appendChild(row);
+  }
+}
+
 // Best-effort: some CDH builds expose the raw attestation (EAR) token. If one
 // does, decode and show its claims; otherwise explain that secret release is
 // the proof and the token lives with the in-guest attestation agent.
@@ -257,6 +302,9 @@ function enterDemoMode() {
   renderInfo(DEMO_INFO);
   // Honest demo state — do NOT show a green "Attested · secret released" badge.
   applyState('demo', { secret: 'super-secret-value-for-key1', path: DEMO_INFO.resourcePath });
+  $('#secrets-list').innerHTML =
+    '<div class="secret-item"><div class="secret-item__head"><code class="mono">default/kbsres1/key1</code> <span class="tag tag--warn">sample</span></div><pre class="secret__val">(sample) super-secret-value-for-key1</pre></div>' +
+    '<div class="secret-item"><div class="secret-item__head"><code class="mono">default/makpassword/mak</code> <span class="tag tag--warn">sample</span></div><pre class="secret__val">(sample) amazingpassword</pre></div>';
   $('#report-note').classList.add('hidden');
   $('#report-claims').classList.remove('hidden');
   $('#report-json').textContent = JSON.stringify(DEMO_CLAIMS, null, 2);
@@ -282,6 +330,7 @@ async function refresh() {
   }
   renderInfo(info);
   await probeAttestation(info);
+  await renderAllSecrets(info);
   loadReport();
 }
 

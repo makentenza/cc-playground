@@ -64,6 +64,7 @@ cat > "$OUT" <<EOF
   "memoryGiB": "$(esc "$MEMG")",
   "kbsUrl": "$(esc "$KBS_EFFECTIVE")",
   "resourcePath": "$(esc "${CDH_RESOURCE_PATH:-default/kbsres1/key1}")",
+  "resourcePaths": "$(esc "${CDH_RESOURCE_PATHS:-${CDH_RESOURCE_PATH:-default/kbsres1/key1}}")",
   "generatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "")"
 }
 EOF
