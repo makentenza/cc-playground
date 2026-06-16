@@ -49,9 +49,18 @@ spec:
               value: kata-cc
             - name: WORKLOAD_IMAGE
               value: cc-playground
-            # Informational only — the real KBS URL is inside the initdata.
+            # Manual fallback only — the real KBS URL is decoded from the
+            # initdata (CC_INIT_DATA below) at container start.
             - name: KBS_URL
               value: ""
+            # The initdata (gzip+base64) the guest attests with — the source of
+            # truth for WHICH Trustee/KBS this workload uses. Exposed via the
+            # downward API so the entrypoint can decode the real KBS endpoint and
+            # show whether it's a co-located or a remote (hub-and-spoke) Trustee.
+            - name: CC_INIT_DATA
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['io.katacontainers.config.hypervisor.cc_init_data']
             # The KBS resource the page fetches as proof of attestation.
             # Always <repository>/<name>/<key> (three segments).
             - name: CDH_RESOURCE_PATH

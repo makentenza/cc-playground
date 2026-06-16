@@ -34,13 +34,45 @@ function lightFlow(stateKey) {
   });
 }
 
+// Classify the KBS endpoint as a co-located (in-cluster) Trustee vs a remote
+// (hub-and-spoke) one, from the host alone. In-cluster Service DNS looks like
+// kbs-service.<ns>, anything.svc(.cluster.local), or a bare <svc>.<ns> pair;
+// an external Route (apps.<domain>) or a raw IP is remote.
+function kbsLocality(url) {
+  let host = '';
+  try {
+    host = new URL(url).hostname;
+  } catch (_) {
+    return null;
+  }
+  if (!host) return null;
+  const inCluster =
+    host.startsWith('kbs-service.') ||
+    host.endsWith('.svc') ||
+    host.endsWith('.svc.cluster.local') ||
+    /^[a-z0-9-]+\.[a-z0-9-]+$/.test(host); // <service>.<namespace>
+  return inCluster
+    ? { kind: 'ok', label: 'in-cluster · same-cluster Trustee' }
+    : { kind: 'warn', label: 'remote · hub-and-spoke Trustee' };
+}
+
+function renderKbsLocality(url) {
+  const el = $('#kbs-locality');
+  if (!el) return;
+  const loc = url ? kbsLocality(url) : null;
+  el.innerHTML = loc
+    ? `<span class="tag tag--${loc.kind}">${loc.label}</span>`
+    : '<span class="tag">unknown</span>';
+}
+
 function renderInfo(info) {
   [
     'pod', 'namespace', 'uid', 'podIP', 'serviceAccount', 'image', 'runtimeClass',
     'node', 'cpu', 'cores', 'memoryGiB', 'kernel', 'resourcePath',
   ].forEach((k) => setText(k, info[k]));
 
-  setText('kbsUrl', info.kbsUrl || '(carried in the workload initdata)');
+  setText('kbsUrl', info.kbsUrl || '(not exposed — check the workload initdata)');
+  renderKbsLocality(info.kbsUrl);
 
   const badge = $('#tee-badge');
   const tee = String(info.tee || '').toLowerCase();
