@@ -1,4 +1,5 @@
 # nothing to build locally — image is built in-cluster from this dir
 *.log
+*.local.md
 .DS_Store
 tmp/

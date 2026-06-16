@@ -43,7 +43,14 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: true
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # buildx defaults (provenance/SBOM attestations + OCI media types) break
+          # kata-cc's in-guest image pull (image-rs): the attestations wrap the
+          # image in a manifest list it can't resolve, and it hangs on OCI-
+          # mediatype layers. So: no attestations, and force Docker schema2 media
+          # types (oci-mediatypes=false) — which also pushes the image.
+          provenance: false
+          sbom: false
+          outputs: type=image,oci-mediatypes=false,push=true
