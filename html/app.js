@@ -88,6 +88,18 @@ function applyState(state, opts = {}) {
         $('#secret-value').textContent = opts.secret.length > 4000 ? opts.secret.slice(0, 4000) + '…' : opts.secret || '(empty)';
       }
       break;
+    case 'demo':
+      // Sample data — never claim a real attestation result.
+      setPill('pending', 'Demo data · not a live workload');
+      secretStatus.innerHTML = '<span class="tag tag--warn">sample</span>';
+      kbsReach.innerHTML = '<span class="tag tag--warn">sample</span>';
+      explain.textContent =
+        'These are sample values shown because no in-guest backend was reachable. Deploy on a confidential (kata-cc) node to see your live workload and a real attestation result.';
+      if (opts.secret !== undefined) {
+        secretWrap.classList.remove('hidden');
+        $('#secret-value').textContent = '(sample) ' + opts.secret;
+      }
+      break;
     case 'attested-missing':
       setPill('ok', 'Attested · resource not found');
       secretStatus.innerHTML = '<span class="tag tag--warn">404 · no such resource</span>';
@@ -202,7 +214,8 @@ const DEMO_CLAIMS = {
 function enterDemoMode() {
   $('#demo-banner').classList.remove('hidden');
   renderInfo(DEMO_INFO);
-  applyState('attested', { secret: 'super-secret-value-for-key1', path: DEMO_INFO.resourcePath });
+  // Honest demo state — do NOT show a green "Attested · secret released" badge.
+  applyState('demo', { secret: 'super-secret-value-for-key1', path: DEMO_INFO.resourcePath });
   $('#report-note').classList.add('hidden');
   $('#report-claims').classList.remove('hidden');
   $('#report-json').textContent = JSON.stringify(DEMO_CLAIMS, null, 2);
@@ -211,11 +224,18 @@ function enterDemoMode() {
 async function refresh() {
   setPill('pending', 'Checking attestation…');
   $('#demo-banner').classList.add('hidden');
+  // Retry /info.json before falling back to demo, so a transient blip (pod
+  // reschedule, node reboot) doesn't masquerade as "not a confidential workload".
   let info;
-  try {
-    info = await loadInfo();
-  } catch (_) {
-    // No /info.json — we're not inside the guest (static preview / local dev).
+  for (let attempt = 0; attempt < 4 && !info; attempt++) {
+    try {
+      info = await loadInfo();
+    } catch (_) {
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 800));
+    }
+  }
+  if (!info) {
+    // No /info.json after retries — not inside the guest (static preview / blip).
     enterDemoMode();
     return;
   }
