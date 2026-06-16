@@ -49,6 +49,15 @@ function renderInfo(info) {
   $('#foot-generated').textContent = info.generatedAt ? `snapshot ${info.generatedAt}` : '';
 }
 
+// Fetch the workload + TEE self-report the container wrote at startup, served by
+// nginx from inside the guest at /info.json. Throws if it isn't reachable (then the
+// caller falls back to the demo state).
+async function loadInfo() {
+  const res = await fetch('/info.json', { cache: 'no-store' });
+  if (!res.ok) throw new Error('info.json HTTP ' + res.status);
+  return res.json();
+}
+
 // Decode a JWT (EAR token) payload without verifying — for display only.
 function decodeJwt(token) {
   try {
